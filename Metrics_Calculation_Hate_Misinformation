@@ -1,0 +1,76 @@
+#import libraries
+import nltk
+from nltk.corpus import stopwords
+from sklearn.metrics import precision_score, recall_score, accuracy_score
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+sns.set_theme(style="whitegrid")
+import pandas as pd
+import seaborn as sns
+%matplotlib inline
+import numpy as np
+from scipy import stats
+from scipy.stats import norm
+import matplotlib.pyplot as plt
+import math
+
+#100 bootstrap resampling parameter
+n_samples = 100
+    
+#process classifications to convert to binary labels
+def map_to_number(x):
+    if x=='a' or x=='use' or x=='used':
+        return 0
+    elif x=='b' or x=='mention' or x=='mentioned' or x=='m':
+        return 1
+    else:
+        return np.nan
+    
+#helpers for classifying metrics 
+def false_positive(true, predicted):
+    CM = confusion_matrix(true, predicted)
+
+    TN = CM[0][0]
+    FN = CM[1][0]
+    TP = CM[1][1]
+    FP = CM[0][1]
+
+    return(100*FP/(FP+TN))
+    
+def false_negative(true, predicted):
+    CM = confusion_matrix(true, predicted)
+
+    TN = CM[0][0]
+    FN = CM[1][0]
+    TP = CM[1][1]
+    FP = CM[0][1]
+
+    return(100*FN/(FN + TP))
+    
+
+def get_metrics(true_o, predicted_o):
+    rs = []
+    ps = []
+    acs = []
+    for i in range(n_samples):
+        t = df.sample(len(df), replace = True)
+        true = t.dropna(subset = [model])['type'].apply(lambda x: 1 if x =='disapproving' else 0)
+        predicted = t.dropna(subset = [model])[model]
+        rs.append(false_positive(true, predicted))
+        ps.append(false_negative(true, predicted))
+        acs.append((1 - accuracy_score(true, predicted))*100)
+        
+        
+    return false_negative(true_o, predicted_o), false_positive(true_o, predicted_o), 100*(1 - accuracy_score(true_o, predicted_o)),\
+    np.nanpercentile(ps,97.5), np.nanpercentile(rs,97.5), np.nanpercentile(acs,97.5),\
+    np.nanpercentile(ps,2.5), np.nanpercentile(rs,2.5), np.nanpercentile(acs,2.5),\
+    np.nanpercentile(ps,50), np.nanpercentile(rs,50), np.nanpercentile(acs,50)
+
+#tested models list helpers
+models = ['label_gpt3.5',
+          'label_gpt4',
+          'label_gpt3.5instruct']
+
+#load the dataset with classifications
+table = pd.read_csv('data/task1.csv')
